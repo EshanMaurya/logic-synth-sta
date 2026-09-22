@@ -3,7 +3,9 @@
 #include <fstream>
 #include <vector>
 #include <algorithm>
-
+#include <unordered_map>
+#include <cctype>
+#include <cstdlib>
 
 using namespace std;
 
@@ -13,13 +15,25 @@ struct gate_basic{
     vector<string> input_gates;
 };
 
+enum GateType {
+        PI,AND, OR, NOR, XOR, XNOR, NOT, BUFF, NAND
+};
+
+struct Node{
+    string name;
+    GateType gate_type;
+    std::vector<int> fanin;
+    std::vector<int> fanout;
+    bool is_output;
+};
+
 string whitespace_removal(string line){
     line.erase(remove(line.begin(),line.end(),' '), line.end());
     return line;
 };
 
-int main() {
-    ifstream file("bench/c17.bench");
+vector<Node> parse_bench_file(string path, bool verbose){
+    ifstream file(path);
     string line;
     vector<string> INPUTS;
     vector<string> OUTPUTS;
@@ -70,18 +84,79 @@ int main() {
             GATES.push_back(logic_gate);
         }
     };
-    cout << "INPUTS: ";
-    for (auto& s : INPUTS) cout << s << " ";
-    cout << endl;
+    std::unordered_map<string, int> ID;
+    for (int idx = 0; idx<INPUTS.size(); idx++){
+        ID.insert({INPUTS[idx], idx});
+    }
+    int id_counter = 0;
+    for (int idx=INPUTS.size(); idx<INPUTS.size()+ GATES.size(); idx++){
+        ID.insert({GATES[id_counter].output_name, idx});
+        id_counter+=1;
+    }
 
-    cout << "OUTPUTS: ";
-    for (auto& s : OUTPUTS) cout << s << " ";
-    cout << endl;
+    // Creation of PI gate_type Nodes
+    vector<Node> nodes;
+    for (int idx=0; idx<INPUTS.size(); idx++){
+        Node inputgates = {INPUTS[idx], PI, {}, {}, false};
+        nodes.push_back(inputgates);
+    }
 
-    for (auto& g : GATES) {
-        cout << g.output_name << " = " << g.gate_type << "(";
-        for (auto& in : g.input_gates) cout << in << " ";
-        cout << ")" << endl;
-    }    
-    return 0;
+    // Gates MAP
+    std::unordered_map<string, GateType> gate_type_lookup = {
+        {"AND", AND},
+        {"OR", OR},
+        {"NOR", NOR},
+        {"XOR", XOR},
+        {"XNOR", XNOR},
+        {"NOT", NOT},
+        {"BUFF", BUFF},
+        {"NAND", NAND}
+    };
+
+    for (int idx=0; idx<GATES.size(); idx++){
+        vector<int> fanin_ids;
+        for (int gate_idx=0; gate_idx< GATES[idx].input_gates.size(); gate_idx++){
+            fanin_ids.push_back(ID[GATES[idx].input_gates[gate_idx]]);
+        }
+        bool is_output;
+        if (std::find(OUTPUTS.begin(), OUTPUTS.end(), GATES[idx].output_name) != OUTPUTS.end()){
+            is_output = true;
+        }
+        else{
+            is_output = false;
+        }
+        string gate_name = GATES[idx].gate_type;
+        std::transform(gate_name.begin(), gate_name.end(), gate_name.begin(), [](unsigned char c){
+            return std::toupper(c);
+        }); // Converting to uppercase
+        Node temporary;
+        // Checking for errors, incase gate_type is not within Enums
+        if (gate_type_lookup.find(gate_name) == gate_type_lookup.end()){
+            cerr<<"Error found! Unrecognized gate type"<<endl;
+            exit(1); // Stop the program
+        }else{
+            temporary = {GATES[idx].output_name, gate_type_lookup[gate_name], fanin_ids, {}, is_output};
+        }
+        nodes.push_back(temporary);
+    }
+    for (int idx=0; idx<nodes.size();idx++){
+        for (int j = 0; j<nodes[idx].fanin.size(); j++){
+            nodes[ nodes[idx].fanin[j] ].fanout.push_back(idx);
+        }
+    }
+    if (verbose == true){
+        for (auto& n : nodes) {
+            cout << n.name << " (type=" << n.gate_type << ", output=" << n.is_output << ") fanin: ";
+            for (auto f : n.fanin) cout << f << " ";
+            cout << "| fanout: ";
+            for (auto f : n.fanout) cout << f << " ";
+            cout << endl;
+    }
+    }
+    return nodes;
+
+}
+
+int main(){
+    vector<Node> nodes =  parse_bench_file("bench/c432.bench", true); 
 }
