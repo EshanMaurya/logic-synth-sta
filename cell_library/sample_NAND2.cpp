@@ -4,30 +4,20 @@
 
 Term term1 = {
     {
-        {"A", Negated},
-        {"B", Negated}
+        {"A", Literal::LiteralPolarity::Normal},
+        {"B", Literal::LiteralPolarity::Normal}
     }
 };
 
-Term term2 = {
-    {
-        {"A", Normal},
-        {"B", Negated}
-    }
+
+SOP sop = {
+    {term1}, 
+    SOP::InvertedFlag::Inverted
 };
 
-Term term3 = {
-    {
-        {"A", Negated},
-        {"B", Normal}
-    }
-};
-
-SOP sop = {{term1,term2,term3}};
-
-pin A = {"A",Input,13}; 
-pin B = {"B", Input, 14};
-pin Y = {"Y", Output, 0}; // Note zero here does not imply that the output pin has ANY capacitance.
+pin A = {"A",pin::pinDirections::Input,13}; 
+pin B = {"B", pin::pinDirections::Input, 14};
+pin Y = {"Y", pin::pinDirections::Output, 0}; // Note zero here does not imply that the output pin has ANY capacitance.
 
 Gate NAND2 = build_gate(
     sop,
@@ -35,11 +25,18 @@ Gate NAND2 = build_gate(
     {
         {"X1", 14, {{14,13}, {15,16}}},
         {"X2", 15, {{14,13}, {15,16}}}
-    }
+    },
+    "NAND2"
 );
 
 int main(){
     std::cout << NAND2.pins[0].name <<std::endl; // Accessing
-    std::cout << NAND2.function.SOP_Output.size() << std::endl; // Accessing Size
+    std::cout << NAND2.function.Terms.size() << std::endl; // Accessing Size
+    for (const Term t: NAND2.function.Terms){
+        for (const Literal l:t.Literals){
+            std::cout<< l.literal_name << "->"<< l.pinIndex<< std::endl;
+        }
+    }
+    
     return 0;
 }

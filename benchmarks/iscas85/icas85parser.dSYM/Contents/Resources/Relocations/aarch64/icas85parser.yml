@@ -1,0 +1,5 @@
+---
+triple:          'arm64-apple-darwin'
+binary-path:     '/Users/eshanmaurya/Programs/logic-synth-sta/benchmarks/iscas85/icas85parser'
+relocations:     []
+...

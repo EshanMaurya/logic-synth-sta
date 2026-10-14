@@ -9,8 +9,10 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # developed and tested independently of the others.
 add_subdirectory(src/netlist)
 add_subdirectory(src/minimization)
+add_subdirectory(cell_library)
 add_subdirectory(src/techmap)
 add_subdirectory(src/sta)
+
 
 enable_testing()
 add_subdirectory(tests/unit)
