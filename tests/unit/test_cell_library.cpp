@@ -2,6 +2,7 @@
 #include <stdexcept>
 #include "sop_eval.hpp"
 #include <set>
+#include <cmath>
 std::vector<std::vector<bool>> input_creation(const Gate& g){
     int n = 0;
     for (const pin& p : g.pins) {
