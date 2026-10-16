@@ -18,6 +18,19 @@ jobs:
       - name: Test
         run: ctest --test-dir build --output-on-failure
 
+  pyeda-crosscheck:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r scripts/requirements-verify.txt
+      - run: cmake -B build -S . -DCMAKE_BUILD_TYPE=Release && cmake --build build
+      - run: python scripts/verify_pyeda.py --bin build/src/minimization/lss_minimize --random 200
+
   benchmark:
     runs-on: ubuntu-latest
     needs: build-and-test
