@@ -1,7 +1,24 @@
 #include "gates.hpp"
 #include <stdexcept>
-
-
+#include "sop_eval.hpp"
+#include <set>
+std::vector<std::vector<bool>> input_creation(const Gate& g){
+    int n = 0;
+    for (const pin& p : g.pins) {
+        if (p.direction == pin::pinDirections::Input) {
+            n = n+1;
+        }
+    }
+    std::vector<std::vector<bool>> inputs;
+    for (int r = 0; r<int(std::pow(2.0,n));r++){
+        std::vector<bool> row;
+        for (int k = 0; k<n; k++){
+            row.push_back((r>>k)&1);
+        }
+        inputs.push_back(row);  
+    }
+    return inputs;
+}
 
 void print_gate(const Gate& g){
     using namespace std;
@@ -36,19 +53,91 @@ void print_gate(const Gate& g){
     
 }
 
-int main(){
-    try {
-        std::vector<Gate> gates = build_library();
-        int i = 0;
-        for (const auto& gate : gates){
-            std::cout<<"Gate No." <<i<<std::endl;
-            print_gate(gate);
-            i = i+1;
+std::map<std::string, std::vector<bool>> expected_tables(){
+    std::map<std::string, std::vector<bool>> t;
+    t["INV"]   = {true,  false};
+    t["NAND2"] = {true,  true,  true,  false};
+    t["NOR2"]  = {true,  false, false, false};
+    t["AND2"]  = {false, false, false, true};
+    t["OR2"]   = {false, true,  true,  true};
+    t["NAND3"] = {true,  true,  true,  true,  true,  true,  true,  false};
+    t["AOI21"] = {true,  true,  true,  false, false, false, false, false};
+    return t;
+}
+
+int check_gate(const Gate& g, const std::map<std::string, std::vector<bool>>& expected){
+    auto it = expected.find(g.gate_name);
+    if (it == expected.end()) {
+        std::cerr << "FAIL: no expected table for gate " << g.gate_name << std::endl;
+        return 1;
+    }
+    const std::vector<bool>& want = it->second;
+    std::vector<std::vector<bool>> rows = input_creation(g);
+    if (rows.size() != want.size()) {
+        std::cerr << "FAIL: " << g.gate_name << " has " << rows.size()
+                  << " input rows but the expected table has " << want.size() << std::endl;
+        return 1;
+    }
+    int problems = 0;
+    for (size_t r = 0; r < rows.size(); r++){
+        bool got = sop_eval(g.function, rows[r]);
+        if (got != want[r]) {
+            std::cerr << "FAIL: " << g.gate_name << " row " << r
+                      << " expected " << want[r] << " got " << got << std::endl;
+            problems = problems + 1;
         }
     }
-    
+    return problems;
+}
+ 
 
-    catch( const std::exception&e){
-        std::cerr<<e.what()<<std::endl;
+int main(int argc, char** argv){
+    bool verbose = (argc > 1 && std::string(argv[1]) == "-v");
+ 
+    try {
+        std::vector<Gate> library = build_library();
+        const std::map<std::string, std::vector<bool>> expected = expected_tables();
+        int problems = 0;
+
+        if (library.size() != expected.size()) {
+            std::cerr << "FAIL: library has " << library.size()
+                      << " gates but " << expected.size() << " were expected" << std::endl;
+            problems = problems + 1;
+        }
+ 
+        std::set<std::string> names;
+        for (const Gate& g : library) {
+            if (!names.insert(g.gate_name).second) {
+                std::cerr << "FAIL: duplicate gate name " << g.gate_name << std::endl;
+                problems = problems + 1;
+            }
+        }
+ 
+        // The mapper cannot cover every circuit without these two.
+        for (const std::string required : {"INV", "NAND2"}) {
+            if (names.count(required) == 0) {
+                std::cerr << "FAIL: required cell " << required << " is missing" << std::endl;
+                problems = problems + 1;
+            }
+        }
+ 
+        // Truth-table check for every gate.
+        for (const Gate& g : library) {
+            if (verbose) {
+                print_gate(g);
+            }
+            problems = problems + check_gate(g, expected);
+        }
+ 
+        if (problems > 0) {
+            std::cerr << problems << " problem(s) found" << std::endl;
+            return 1;
+        }
+        std::cout << "All " << library.size() << " gates passed" << std::endl;
+        return 0;
+    }
+    catch (const std::exception& e) {
+        std::cerr << "ERROR: " << e.what() << std::endl;
+        return 1;
     }
 }

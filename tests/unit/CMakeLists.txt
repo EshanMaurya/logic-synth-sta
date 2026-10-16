@@ -11,3 +11,7 @@
 add_executable(test_cell_library test_cell_library.cpp)
 target_link_libraries(test_cell_library PRIVATE cell_library)
 add_test(NAME test_cell_library COMMAND test_cell_library)
+
+add_executable(test_decompose test_decompose.cpp)
+target_link_libraries(test_decompose PRIVATE techmap)
+add_test(NAME test_decompose COMMAND test_decompose)
