@@ -1,5 +1,0 @@
----
-triple:          'arm64-apple-darwin'
-binary-path:     '/Users/eshanmaurya/Programs/logic-synth-sta/cell_library/sample_NAND2'
-relocations:     []
-...

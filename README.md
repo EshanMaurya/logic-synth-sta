@@ -35,6 +35,30 @@ cmake --build .
 ctest
 ```
 
+## Minimizer CLI
+
+```bash
+build/src/minimization/lss_minimize -m "f(a,b,c,d)=m(4,8,10,11,12,15)+d(9,14)" --pos
+build/src/minimization/lss_minimize -e "(a+b')(c+d)"
+build/src/minimization/lss_minimize --tt "0110 100x"
+build/src/minimization/lss_minimize tests/data/full_adder.pla
+```
+
+Inputs: Espresso-style PLA (multi-output, `.type f|fd|fr|fdr`), minterm/maxterm
+lists with don't-cares, SOP/POS expressions (`'`, `!`, `~` for NOT; `+`/`|` OR;
+implicit/`*`/`&` AND; `^` XOR), and raw truth-table strings. Variable 0 is the
+most significant bit of the minterm index.
+
+Cost order is (product terms, literals). Prime implicants come from QM, the cover
+is solved by essential extraction, row/column dominance, then Petrick's method.
+If Petrick's product grows past `--petrick-limit`, a branch-and-bound search takes
+over; if that hits its node budget the result is flagged `exact: false`.
+
+`scripts/verify_pyeda.py` checks every cover for equivalence and compares cost
+against pyeda's espresso (`pip install -r scripts/requirements-verify.txt`).
+
 ## Status
 
-Early scaffold — modules are stubbed out; implementation in progress.
+- Minimization: Quine-McCluskey + Petrick's method, parsing, CLI and tests done.
+  `espresso.cpp` (expand / reduce / irredundant) is the next milestone.
+- Techmap, STA, netlist: stubbed.
