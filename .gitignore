@@ -28,3 +28,8 @@ venv/
 .DS_Store
 *.dSYM/
 build/
+
+# Debug symbol bundles / local binaries
+*.dSYM/
+cell_library/sample_NAND2
+benchmarks/iscas85/icas85parser
