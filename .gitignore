@@ -26,3 +26,5 @@ venv/
 
 # OS
 .DS_Store
+*.dSYM/
+build/
