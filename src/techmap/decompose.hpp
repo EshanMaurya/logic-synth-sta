@@ -15,3 +15,5 @@ struct SubjectGraph{
 };
 
 SubjectGraph decompose(const SOP &function, int num_inputs);
+
+bool evaluate_graph(const SubjectGraph &Graph, const std::vector<bool> &row);

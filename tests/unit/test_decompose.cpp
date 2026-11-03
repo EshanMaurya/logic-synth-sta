@@ -1,9 +1,12 @@
 #include "decompose.hpp"
 #include "gates.hpp"
+#include "sop_eval.hpp"
 #include <iostream>
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <algorithm>
+#include <cmath>
 
 struct ExpectedNode{
     std::vector<int> Inputs;
@@ -77,6 +80,24 @@ int check_gate(std::string const &GateName,std::vector<ExpectedNode> const &Expe
     return 0;
 }
 
+std::vector<std::vector<bool>> input_creation(const Gate& g){
+    int n = 0;
+    for (const pin& p : g.pins) {
+        if (p.direction == pin::pinDirections::Input) {
+            n = n+1;
+        }
+    }
+    std::vector<std::vector<bool>> inputs;
+    for (int r = 0; r<int(std::pow(2.0,n));r++){
+        std::vector<bool> row;
+        for (int k = 0; k<n; k++){
+            row.push_back((r>>k)&1);
+        }
+        inputs.push_back(row);  
+    }
+    return inputs;
+}
+
 int main(){
     try{
         int problems = 0;
@@ -101,6 +122,26 @@ int main(){
             ExpectedNode{{2},   node::type::INV},
             ExpectedNode{{3,4}, node::type::NAND},
             ExpectedNode{{5},   node::type::INV}}, 6);
+
+        std::vector<Gate> GateLib = build_library();
+        for(Gate const &g: GateLib){
+            int num_inputs = static_cast<int>(std::count_if(g.pins.begin(), g.pins.end(),
+            [](const pin &p){ return p.direction == pin::pinDirections::Input; }));
+            std::vector<std::vector<bool>> row = input_creation(g);
+            SubjectGraph Graph = decompose(g.function,num_inputs); 
+            int i = 0;
+            for (std::vector<bool> const &row: row){
+                
+                bool ft1 = evaluate_graph(Graph, row);
+                bool ft2 = sop_eval(g.function, row);
+                if(ft1!=ft2){
+                    problems+=1;
+                    std::cerr<<g.gate_name<<": row " << i  << " graph says " <<static_cast<int>(ft1)<<", sop_eval says" << static_cast<int>(ft2)<<std::endl;
+                }
+                i+=1;
+                
+            }
+        }
         if (problems>0){
             std::cerr<<"Number of problems: " << problems<< std::endl;
             return 1;
@@ -108,6 +149,8 @@ int main(){
             std::cout<<"ALL TESTS PASSED" << std::endl;
             return 0;
         }
+           
+
             
     } catch(const std::exception &e) { std::cerr << e.what() << std::endl; return 1; }
 }

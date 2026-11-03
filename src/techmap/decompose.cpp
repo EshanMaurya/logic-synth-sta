@@ -115,3 +115,22 @@ SubjectGraph decompose(const SOP &function, int num_inputs){
     return Result;
 }
 
+bool evaluate_graph(const SubjectGraph &Graph, const std::vector<bool> &row){
+    std::vector<bool> value;
+
+    for (node const &N: Graph.VectorNode){
+        
+
+        if (N.NodeType  == node::type::PI){
+            value.push_back(row.at(N.pinIndex));
+        } else if(N.NodeType == node::type::INV){
+            value.push_back(!(value.at(N.Inputs.at(0))));
+        } else if(N.NodeType == node::type::NAND){
+            value.push_back(!(value.at(N.Inputs.at(0))&&value.at(N.Inputs.at(1))));
+        } else{
+            throw std::invalid_argument("Unknown node type");
+        }
+
+    }
+    return value.at(Graph.root);
+}
