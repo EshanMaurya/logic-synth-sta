@@ -27,3 +27,11 @@ struct tmap_result{
 };
 
 std::vector<tmap_result> dp_cover (const SubjectGraph &circuit, const std::vector<pattern> &patterns);
+
+struct mapped_cell{
+    int patternIndex;
+    int outputNode;
+    std::vector<int> inputNodes;
+};
+
+std::vector<mapped_cell> top_down_extractor (const std::vector<tmap_result> &resultTable, int rootNode);

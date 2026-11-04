@@ -30,6 +30,13 @@ struct ExpectedCost
     int patternIndex;
 };
 
+struct ExpectedCell
+{
+    int patternIndex;
+    int outputNode;
+    std::vector<int> inputNodes;
+};
+
 static int dp_cover_test(const SubjectGraph &circuit, const std::vector<pattern> &patterns, const std::vector<ExpectedCost> &expected, const std::string &circuit_name)
 {
     int problems = 0;
@@ -39,7 +46,7 @@ static int dp_cover_test(const SubjectGraph &circuit, const std::vector<pattern>
     if (expected.size() != results.size())
     {
         problems += 1;
-        std::cerr<<"ERROR: " << circuit_name <<  " Number of results does not match with number of expected results" << std::endl;
+        std::cerr << "ERROR: " << circuit_name << " Number of results does not match with number of expected results" << std::endl;
         return problems;
     }
     for (int i = 0; i < static_cast<int>(expected.size()); i++)
@@ -55,8 +62,43 @@ static int dp_cover_test(const SubjectGraph &circuit, const std::vector<pattern>
         if (expected.at(i).patternIndex != results.at(i).bestMatch.patternIndex)
         {
             problems += 1;
-            std::cerr << "ERROR: "<<circuit_name<< " : At node " << i << " , patternIndex computed " << results.at(i).bestMatch.patternIndex << " does not match expected patternIndex " << expected.at(i).patternIndex << std::endl;
+            std::cerr << "ERROR: " << circuit_name << " : At node " << i << " , patternIndex computed " << results.at(i).bestMatch.patternIndex << " does not match expected patternIndex " << expected.at(i).patternIndex << std::endl;
         }
+    }
+    return problems;
+}
+
+static int extract_test(const std::vector<tmap_result> &resultTable, int root, const std::vector<ExpectedCell> &expectedCells, const std::string &circuit_name)
+{
+    int problems = 0;
+    std::vector<mapped_cell> mappedCell = top_down_extractor(resultTable, root);
+    if (mappedCell.size() != expectedCells.size())
+    {
+        problems += 1;
+        std::cerr << "ERROR: " << circuit_name << " : computed size " << mappedCell.size() << " but expected " << expectedCells.size() << std::endl;
+        return problems;
+    }
+    int i = 0;
+    for (const mapped_cell &c : mappedCell)
+    {
+        if (c.patternIndex != expectedCells.at(i).patternIndex)
+        {
+            problems += 1;
+            std::cerr << "ERROR: " << circuit_name << ": " << "cell " << i << " expected pattern index " << expectedCells.at(i).patternIndex << " but got " << c.patternIndex << std::endl;
+        }
+
+        if (c.inputNodes != expectedCells.at(i).inputNodes)
+        {
+            problems += 1;
+            std::cerr << "ERROR: " << circuit_name << ": " << "cell " << i << " expected input nodes configuration not matching with computed input nodes " << std::endl;
+        }
+
+        if (c.outputNode != expectedCells.at(i).outputNode)
+        {
+            problems += 1;
+            std::cerr << "ERROR: " << circuit_name << ": " << "cell " << i << " expected output node " << expectedCells.at(i).outputNode << " but got " << c.outputNode << std::endl;
+        }
+        i += 1;
     }
     return problems;
 }
@@ -192,7 +234,58 @@ int main()
         };
 
         problems += dp_cover_test(circuit, patterns, expected1, "AND2 Circuit");
-        problems += dp_cover_test(circuit2, patterns, expected2 , "AOI21 Circuit");
+        problems += dp_cover_test(circuit2, patterns, expected2, "AOI21 Circuit");
+
+        // ------------------- Test for top_down_extractor ------------------//
+        // AND2 circuit (root 3)
+        std::vector<ExpectedCell> expectedCells1 = {
+            {4, 3, {0, 1}} // AND2 drives node 3
+        };
+
+        // AOI21 circuit (root 6)
+        std::vector<ExpectedCell> expectedCells2 = {
+            {6, 6, {0, 1, 2}} // AOI21 drives node 6
+        };
+
+        // Third circuit (root 6)
+        std::vector<ExpectedCell> expectedCells3 = {
+            {2, 5, {0, 1, 2}}, // NAND3 drives node 5 (comes first)
+            {1, 6, {5}}        // INV drives node 6
+        };
+
+        // Additional circuit for further testing
+
+        SubjectGraph circuit3;
+        circuit3.VectorNode = {
+            {node::type::PI, {}, 0},        // node 0
+            {node::type::PI, {}, 1},        // node 1
+            {node::type::PI, {}, 2},        // node 2
+            {node::type::NAND, {0, 1}, -1}, // node 3
+            {node::type::INV, {3}, -1},     // node 4
+            {node::type::NAND, {4, 2}, -1}, // node 5
+            {node::type::INV, {5}, -1}      // node 6
+        };
+        circuit3.root = 6;
+
+        std::vector<ExpectedCost> expected3 = {
+            {0, -1}, // node 0: PI
+            {0, -1}, // node 1: PI
+            {0, -1}, // node 2: PI
+            {12, 0}, // node 3: NAND2
+            {16, 4}, // node 4: AND2 (16) beats INV + NAND2 (20)
+            {16, 2}, // node 5: NAND3 (16) beats NAND2 on {4,2} (28)
+            {24, 1}  // node 6: INV on {5} (8 + 16) beats AND2 on {4,2} (32)
+        };
+
+        auto r1 = dp_cover(circuit, patterns);
+        problems += extract_test(r1, 3, expectedCells1, "AND2 Circuit");
+
+        auto r2 = dp_cover(circuit2, patterns);
+        problems += extract_test(r2, 6, expectedCells2, "AO121 Circuit");
+
+        auto r3 = dp_cover(circuit3, patterns);
+        problems += dp_cover_test(circuit3, patterns, expected3, "Chain Circuit");
+        problems += extract_test(r3, 6, expectedCells3, "Chain Circuit");
 
         if (problems > 0)
         {
