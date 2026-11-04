@@ -3,7 +3,8 @@
 #include "cell_library.hpp"
 #include "decompose.hpp"
 #include <string>
-
+#include "lss/minimize.hpp"
+#include "lss/boolfunc.hpp"
 struct pattern{
     std::string patternName;
     int gateIndex; // for pointing back to cell_library
@@ -35,3 +36,5 @@ struct mapped_cell{
 };
 
 std::vector<mapped_cell> top_down_extractor (const std::vector<tmap_result> &resultTable, int rootNode);
+
+SOP cover_to_sop(const std::vector<lss::Cube> &cover, const std::vector<std::string> &var_names);

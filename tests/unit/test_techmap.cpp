@@ -37,6 +37,8 @@ struct ExpectedCell
     std::vector<int> inputNodes;
 };
 
+struct ExpectedLiteral {std::string name; Literal::LiteralPolarity polarity; int pin; };
+
 static int dp_cover_test(const SubjectGraph &circuit, const std::vector<pattern> &patterns, const std::vector<ExpectedCost> &expected, const std::string &circuit_name)
 {
     int problems = 0;
@@ -287,6 +289,10 @@ int main()
         problems += dp_cover_test(circuit3, patterns, expected3, "Chain Circuit");
         problems += extract_test(r3, 6, expectedCells3, "Chain Circuit");
 
+        // -------------------- TEST for cover_to_sop ------------------ //
+
+        
+
         if (problems > 0)
         {
             std::cerr << "Number of problems: " << problems << std::endl;
@@ -303,4 +309,5 @@ int main()
         std::cerr << e.what() << std::endl;
         return 1;
     }
+
 }

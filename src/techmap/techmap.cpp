@@ -154,11 +154,14 @@ std::vector<tmap_result> dp_cover(const SubjectGraph &circuit, const std::vector
 }
 
 static void extract_node(const std::vector<tmap_result> &result, int nodeIndex, std::vector<bool> &visited, std::vector<mapped_cell> &output)
-{   
+{
 
-    if(visited.at(nodeIndex) == true){
+    if (visited.at(nodeIndex) == true)
+    {
         return;
-    } else visited.at(nodeIndex) = true;
+    }
+    else
+        visited.at(nodeIndex) = true;
     if (result.at(nodeIndex).bestMatch.patternIndex == -1)
     {
         return; // Nothing to place, it's a PI
@@ -177,12 +180,67 @@ static void extract_node(const std::vector<tmap_result> &result, int nodeIndex, 
     }
 }
 
-
-
-std::vector<mapped_cell> top_down_extractor(const std::vector<tmap_result> &resultTable,int rootNode)
+std::vector<mapped_cell> top_down_extractor(const std::vector<tmap_result> &resultTable, int rootNode)
 {
     std::vector<bool> visited(resultTable.size(), false);
     std::vector<mapped_cell> output;
-    extract_node(resultTable,rootNode, visited, output);
+    extract_node(resultTable, rootNode, visited, output);
     return output;
+}
+
+SOP cover_to_sop(const std::vector<lss::Cube> &cover, const std::vector<std::string> &var_names)
+{
+    if (cover.size() == 0)
+    {
+        throw std::invalid_argument("cover_to_sop: empty cover (constant 0)");
+    }
+
+    SOP result;
+    int k = 0; // for error messages
+    for (const lss::Cube &c : cover)
+    {
+        if (c.num_vars() != var_names.size())
+        {
+            throw std::invalid_argument("cover_to_sop: cube " + std::to_string(k) + " has " +
+                                        std::to_string(c.num_vars()) + " variables but " +
+                                        std::to_string(var_names.size()) + " names were given");
+        }
+        Term t;
+        for (std::size_t i = 0; i < c.num_vars(); i++)
+        {
+            lss::Lit state = c.get(i);
+            if (state == lss::Lit::DontCare)
+            {
+                continue;
+            }
+            else if (state == lss::Lit::One)
+            {
+                Literal l;
+                l.literal_name = var_names.at(i);
+                l.polarity = Literal::LiteralPolarity::Normal;
+                l.pinIndex = static_cast<int>(i);
+                t.Literals.push_back(l);
+            }
+            else if (state == lss::Lit::Zero)
+            {
+                Literal l;
+                l.literal_name = var_names.at(i);
+                l.polarity = Literal::LiteralPolarity::Negated;
+                l.pinIndex = static_cast<int>(i);
+                t.Literals.push_back(l);
+            }
+            else
+                throw std::invalid_argument("cover_to_sop: cube " + std::to_string(k) + " has an invalid literal");
+        }
+
+        if (t.Literals.size() == 0)
+        {
+            throw std::invalid_argument("cover_to_sop: cube " + std::to_string(k) + " has no literals (constant 1)");
+        }
+        result.Terms.push_back(t);
+        k += 1;
+    }
+
+    result.Inverted_Flag = SOP::InvertedFlag::Normal;
+    return result;
 }
