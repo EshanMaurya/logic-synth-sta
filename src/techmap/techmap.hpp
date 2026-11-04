@@ -13,3 +13,10 @@ struct pattern{
 };
 
 std::vector<pattern> build_patterns();
+
+struct match{
+    int patternIndex;
+    std::vector<int> bindings;
+};
+
+std::vector<match> find_matches(const SubjectGraph &circuitGraph, int circuitNode, const std::vector<pattern> &patterns);
