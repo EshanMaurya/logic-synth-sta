@@ -22,6 +22,11 @@ add_test(NAME test_parser COMMAND test_parser)
 
 add_executable(test_minimization test_minimization.cpp)
 target_link_libraries(test_minimization PRIVATE minimization)
+
+add_executable(test_techmap test_techmap.cpp)
+target_link_libraries(test_techmap PRIVATE techmap)
+add_test(NAME test_techmap COMMAND test_techmap)
+
 add_test(NAME test_minimization COMMAND test_minimization)
 
 add_test(NAME lss_minimize_cli_pla
