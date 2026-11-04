@@ -60,5 +60,5 @@ against pyeda's espresso (`pip install -r scripts/requirements-verify.txt`).
 ## Status
 
 - Minimization: Quine-McCluskey + Petrick's method, parsing, CLI and tests done.
-  `espresso.cpp` (expand / reduce / irredundant) is the next milestone.
+  ESPRESSO heuristic (`espresso.cpp`, `--espresso`) done: expand / irredundant / reduce on cube covers, no minterm enumeration.
 - Techmap, STA, netlist: stubbed.

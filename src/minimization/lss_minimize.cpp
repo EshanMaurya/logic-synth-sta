@@ -16,6 +16,7 @@ struct Args {
     std::string truth;
     std::string vars;
     bool pos = false;
+    bool espresso = false;
     bool primes = false;
     bool json = false;
     bool have_output = false;
@@ -32,6 +33,7 @@ void usage() {
                  "  --tt <bits>          truth table, MSB-first row order, x or - for don't care\n"
                  "  --vars a,b,c         variable names / order\n"
                  "  --output N           select output N of a multi-output PLA\n"
+                 "  --espresso           use the ESPRESSO heuristic instead of exact QM + Petrick\n"
                  "  --pos                also print the minimal product-of-sums form\n"
                  "  --primes             list all prime implicants\n"
                  "  --petrick-limit N    max Petrick product terms before switching to branch-and-bound\n"
@@ -76,7 +78,7 @@ void print_text(const BoolFunction& f, const MinimizeResult& r, const MinimizeRe
     if (list_primes)
         for (const Cube& p : r.primes) std::cout << "    " << p.to_string() << "  " << p.to_product(f.var_names) << "\n";
     std::cout << "  cover           : " << r.term_count << " terms, " << r.literal_count << " literals"
-              << (r.exact ? "" : "  (search budget exhausted, best cover found, not proven minimal)") << "\n";
+              << (r.exact ? "" : "  (heuristic or budget-limited cover, not proven minimal)") << "\n";
     std::cout << "  SOP             : " << f.name << " = " << format_sop(r.cover, f.var_names) << "\n";
     if (pos)
         std::cout << "  POS             : " << f.name << " = " << format_pos(pos->cover, f.var_names) << "  ("
@@ -106,6 +108,7 @@ int main(int argc, char** argv) {
             a.output = static_cast<std::size_t>(std::stoul(need("--output")));
             a.have_output = true;
         } else if (s == "--pos") a.pos = true;
+        else if (s == "--espresso") a.espresso = true;
         else if (s == "--primes") a.primes = true;
         else if (s == "--json") a.json = true;
         else if (s == "--petrick-limit") a.petrick_limit = static_cast<std::size_t>(std::stoull(need("--petrick-limit")));
@@ -144,8 +147,9 @@ int main(int argc, char** argv) {
 
         bool ok = true;
         for (const BoolFunction& f : fs) {
-            MinimizeResult r = minimize_exact(f, opts);
-            if (!verify_cover(f, r.cover)) {
+            auto run = [&](const BoolFunction& g) { return a.espresso ? minimize_espresso(g) : minimize_exact(g, opts); };
+            MinimizeResult r = run(f);
+            if (!(a.espresso ? verify_cover_symbolic(f, r.cover) : verify_cover(f, r.cover))) {
                 std::cerr << "internal error: cover for " << f.name << " failed verification\n";
                 ok = false;
                 continue;
@@ -153,7 +157,7 @@ int main(int argc, char** argv) {
             MinimizeResult pos_r;
             bool have_pos = false;
             if (a.pos) {
-                pos_r = minimize_exact(f.complement(), opts);
+                pos_r = run(f.complement());
                 have_pos = true;
             }
             if (a.json) print_json(f, r, have_pos ? &pos_r : nullptr);

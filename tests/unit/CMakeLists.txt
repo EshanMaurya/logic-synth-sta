@@ -33,3 +33,10 @@ add_test(NAME lss_minimize_cli_pla
          COMMAND lss_minimize --json ${CMAKE_SOURCE_DIR}/tests/data/full_adder.pla)
 add_test(NAME lss_minimize_cli_minterms
          COMMAND lss_minimize --pos ${CMAKE_SOURCE_DIR}/tests/data/textbook4.min)
+
+add_executable(test_espresso test_espresso.cpp)
+target_link_libraries(test_espresso PRIVATE minimization)
+add_test(NAME test_espresso COMMAND test_espresso)
+
+add_test(NAME lss_minimize_cli_espresso
+         COMMAND lss_minimize --espresso --pos ${CMAKE_SOURCE_DIR}/tests/data/textbook4.min)
