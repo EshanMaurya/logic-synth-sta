@@ -48,6 +48,17 @@ struct MinimizeResult {
 
 MinimizeResult minimize_exact(const BoolFunction& f, const MinimizeOptions& opts = {});
 
+struct EspressoOptions {
+    std::size_t max_iterations = 20; // reduce/expand/irredundant passes
+};
+
+// Heuristic (ESPRESSO-style) minimization on cube covers; no minterm
+// enumeration, so it handles functions beyond kMaxEnumVars. Result has exact=false.
+MinimizeResult minimize_espresso(const BoolFunction& f, const EspressoOptions& opts = {});
+
+// Equivalence check without enumerating minterms (cover within ON+DC, ON covered).
+bool verify_cover_symbolic(const BoolFunction& f, const std::vector<Cube>& cover);
+
 bool verify_cover(const BoolFunction& f, const std::vector<Cube>& cover);
 
 std::string format_sop(const std::vector<Cube>& cover, const std::vector<std::string>& names);
