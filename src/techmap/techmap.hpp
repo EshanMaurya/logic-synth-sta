@@ -15,8 +15,15 @@ struct pattern{
 std::vector<pattern> build_patterns();
 
 struct match{
-    int patternIndex;
+    int patternIndex = -1; // -1 means "no match"
     std::vector<int> bindings;
 };
 
 std::vector<match> find_matches(const SubjectGraph &circuitGraph, int circuitNode, const std::vector<pattern> &patterns);
+
+struct tmap_result{
+    int bestCost = 1000000; // large number 
+    match bestMatch;
+};
+
+std::vector<tmap_result> dp_cover (const SubjectGraph &circuit, const std::vector<pattern> &patterns);

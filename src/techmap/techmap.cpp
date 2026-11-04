@@ -4,13 +4,15 @@
 #include "techmap.hpp"
 #include "decompose.hpp"
 #include <algorithm>
-
+#include <string>
+#include <stdexcept>
 
 static int count_inputs(const Gate &g){
     int num_inputs = static_cast<int>(std::count_if(g.pins.begin(), g.pins.end(),
             [](const pin &p){ return p.direction == pin::pinDirections::Input; }));
         return num_inputs;
 }
+
 std::vector<pattern> build_patterns(){
     std::vector<Gate> Gates = build_library();
     int i = 0;
@@ -84,4 +86,36 @@ std::vector<match> find_matches(const SubjectGraph &circuitGraph, int circuitNod
         i +=1;
     }
     return result;
+}
+
+std::vector<tmap_result> dp_cover (const SubjectGraph &circuit, const std::vector<pattern> &patterns){
+    std::vector<tmap_result> resultvector;
+    int k = 0; // node counter
+    for (const node &n: circuit.VectorNode){
+        tmap_result result;
+        if (n.NodeType == node::type::PI){
+            result.bestCost = 0;
+        } else{
+            std::vector<match> matches = find_matches(circuit,k,patterns);
+            if (matches.size() == 0){
+                throw std::runtime_error("No matches found at node " + std::to_string(k));
+            }
+
+            for (const match &m: matches){
+                const pattern &p = patterns.at(m.patternIndex);
+                int total = p.area;
+            
+                for (const int &b: m.bindings){
+                    total+=resultvector.at(b).bestCost;
+                }
+                if (total< result.bestCost){
+                    result.bestCost = total;
+                    result.bestMatch = m;
+                }
+            }
+        }
+        k+=1;
+        resultvector.push_back(result);
+    }
+    return resultvector;
 }
